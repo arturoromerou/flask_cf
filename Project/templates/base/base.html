@@ -27,6 +27,19 @@
     <title>{% block title %} {% endblock %}</title>
 </head>
 <body>
+
+    {% with messages = get_flashed_messages() %} <!-- get_flashed_messages devuelve los mensaje si es que hay -->
+        {% if messages %}
+            
+                {% for message in messages %}
+                    <div class="alert alert-success">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            
+        {% endif %}
+    {% endwith %}
+
     {% block content %}
     {% endblock %}
 

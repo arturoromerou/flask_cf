@@ -1,8 +1,9 @@
 from flask import Flask # importa flask
 from flask import render_template # renderiza los templates
-from flask import request #
-from flask import make_response
-from flask import session
+from flask import request 
+from flask import make_response 
+from flask import session # aplica sesiones 
+from flask import flash # muestra mensajes en pantalla
 
 from flask import url_for
 from flask import redirect
@@ -13,6 +14,10 @@ import forms
 app = Flask(__name__)
 app.secret_key = 'Ar2098'
 csrf = CSRFProtect(app)
+
+@app.errorhandler(404)
+def page_not_found(e):
+   return render_template('404.html'), 404
 
 @app.route('/')
 def index():
@@ -27,7 +32,10 @@ def login():
     title = 'Login'
     login_form = forms.LoginForm(request.form)
     if request.method == 'POST' and login_form.validate():
+        username = login_form.username.data
+        success_message = f'Bienvenido {username}'
         session['username'] = login_form.username.data
+        flash(success_message)
 
     return render_template('login.html', title = title, form = login_form)
 
