@@ -36,3 +36,27 @@ class LoginForm(Form):
                                 validators.Required(message='El password es requerido')
                             ]
                             )
+
+class CreateForm(Form):
+    username = StringField('Username',
+                        [ 
+                            validators.Required(message='el username es requerido'),
+                            validators.length(min=4, max=25, message='ingresa un username valido!.')
+                        ]
+                        )
+
+    password = PasswordField('Password', 
+                            [
+                                validators.Required(message='El password es requerido')
+                            ]
+                            )
+
+    email = EmailField('Correo Electronico',
+                    [
+                        validators.Required(message='el email es requerido'),
+                        validators.Email(message='ingresa un email valido'),
+                        validators.length(min=4, max=50, message='ingrese un email valido')
+                    ]
+                    )
+
+    honeypot = HiddenField('', [length_honeypot])
