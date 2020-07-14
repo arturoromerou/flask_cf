@@ -18,6 +18,8 @@ from flask_wtf.csrf import CSRFProtect # evita los ataques csrf con un secret ke
 import forms
 import json
 
+from helper import date_format
+
 app = Flask(__name__)
 app.config.from_object(DevelopmentConfig)
 csrf = CSRFProtect()
@@ -109,7 +111,8 @@ def reviews(page=1):
     try:
         comment_list = Comment.query.join(User).add_columns(
             User.username, 
-            Comment.text).paginate(
+            Comment.text,
+            Comment.create_date).paginate(
                 page, 
                 app.config['POSTS_PER_PAGE'], 
                 False) # 1=pagina inicial, 3=tamanio bloques de la pagina, (True=manda a 404, False=Comment vacio)
@@ -120,7 +123,8 @@ def reviews(page=1):
 
     return render_template(
         'reviews.html', 
-        comments = comment_list)
+        comments = comment_list,
+        date_format = date_format)
 
 @app.route('/create', methods=['GET', 'POST'])
 def create():

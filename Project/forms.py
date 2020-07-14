@@ -10,9 +10,6 @@ def length_honeypot(form, field):
         raise validators.ValidationError('el campo debe estar vacio')
 
 class CommentForm(Form):
-
-    date = DateField(format='%Y-%m-%d')
-    username = StringField('Username')
     comment = TextField('Comentario')
 
 class LoginForm(Form):
