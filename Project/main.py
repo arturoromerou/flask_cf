@@ -12,6 +12,7 @@ from config import DevelopmentConfig
 
 from models import db
 from models import User
+from models import Comment
 
 from flask_wtf.csrf import CSRFProtect # evita los ataques csrf con un secret key
 import forms
@@ -27,21 +28,23 @@ def page_not_found(e):
 
 @app.before_request
 def before_request():
-    g.test = 'test1'
+    if 'username' not in session and request.endpoint in ['comment']:
+        return redirect(url_for('login'))
+
+    elif 'username' in session and request.endpoint in ['login', 'create']:
+        return redirect(url_for('index'))
 
 @app.route('/')
 def index():
-    print(g.test)
     if 'username' in session:
         username = session['username']
         print(username)
     title = 'Index'
     return render_template('index.html', title = title)
 
-@app.after_request
-def after_request(response):
-    print(g.test)
-    return response
+# @app.after_request
+# def after_request(response):
+#     pass
 
 @app.route('/login', methods = ['GET', 'POST'])
 def login():
@@ -85,14 +88,39 @@ def method_name():
 def comment():
     comment_form = forms.CommentForm(request.form)
     if request.method == 'POST' and comment_form.validate():
-        print(comment_form.username.data)
-        print(comment_form.email.data)
-        print(comment_form.comment.data)
-    else:
-        print('error en el formulario')
+        
+        user_id = session['user_id']
+        comment = Comment(user_id = user_id, 
+                        text = comment_form.comment.data,
+                        date = comment_form.create_date.data)
+
+        db.session.add(comment)
+        db.session.commit()
+
+        success_message = 'Comentario agregado!'
+        flash(success_message)
 
     title = "Comment"
     return render_template('comment.html', title = title, form = comment_form)
+
+@app.route('/reviews', methods=['GET'])
+@app.route('/reviews/<int:page>', methods=['GET'])
+def reviews(page=1):
+    try:
+        comment_list = Comment.query.join(User).add_columns(
+            User.username, 
+            Comment.text).paginate(
+                page, 
+                app.config['POSTS_PER_PAGE'], 
+                False) # 1=pagina inicial, 3=tamanio bloques de la pagina, (True=manda a 404, False=Comment vacio)
+
+    except OperationalError:
+        flash("No comments in the database.")
+        comments_list = None
+
+    return render_template(
+        'reviews.html', 
+        comments = comment_list)
 
 @app.route('/create', methods=['GET', 'POST'])
 def create():
@@ -126,4 +154,4 @@ if __name__ == '__main__':
     with app.app_context(): # sincroniza la base de datos con la aplicacion
         db.create_all() # crea todas las tablas que no esten creadas
 
-    app.run(port=8000)
+    app.run(port=5000)
