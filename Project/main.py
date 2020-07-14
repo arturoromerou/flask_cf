@@ -7,6 +7,7 @@ from flask import flash # muestra mensajes en pantalla
 from flask import g # me permite trabajar con cualquie variable dentro de una misma peticion (variable global)
 from flask import url_for
 from flask import redirect
+from flask import copy_current_request_context
 
 from config import DevelopmentConfig
 
@@ -20,9 +21,27 @@ import json
 
 from helper import date_format
 
+from flask_mail import Mail
+from flask_mail import Message
+
+import threading
+
 app = Flask(__name__)
 app.config.from_object(DevelopmentConfig)
 csrf = CSRFProtect()
+mail = Mail()
+
+def send_email(user_email, username):
+    msg = Message('Gracias por registrarte!', 
+                        sender = app.config['MAIL_USERNAME'],                        
+                        recipients = [user_email])
+        
+    msg.html = render_template('email.html', username = username)
+    mail.send(msg)
+
+def create_session(username = '', user_id = ''):
+    session['username'] = username
+    session['user_id'] = user_id
 
 @app.errorhandler(404)
 def page_not_found(e):
@@ -136,6 +155,16 @@ def create():
         
         db.session.add(user) # necesita un objeto que herede de model
         db.session.commit() # nos aseguramos que se guarde en la base de datos
+        
+        @copy_current_request_context
+        def send_message(email, username):
+            send_email(email, username)
+
+        sender = threading.Thread(name = 'mail_sender',
+                                target = send_message,
+                                args = (user.email, user.username))
+
+        sender.start()
 
         success_message = 'Usuario registrado en la base de datos'
         flash(success_message)
@@ -151,9 +180,9 @@ def ajax_login():
     return json.dumps(response)
 
 if __name__ == '__main__':
-    csrf.init_app(app)
+    csrf.init_app(app) # palabra secreta (para evitar ataques csrf)
     db.init_app(app) # obtenemos las configuraciones de la base de datos
-
+    mail.init_app(app) # enviar emails
 
     with app.app_context(): # sincroniza la base de datos con la aplicacion
         db.create_all() # crea todas las tablas que no esten creadas
